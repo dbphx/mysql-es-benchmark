@@ -1,0 +1,2 @@
+wrk -t2 -c50 -d30s http://localhost:8080/search-sql?q=user_1
+wrk -t2 -c50 -d30s http://localhost:8080/search-es?q=user_1

@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-bench
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: testdb
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  opensearch:
+    image: opensearchproject/opensearch:2.10.0
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - plugins.security.disabled=true
+    ports:
+      - "9200:9200"
+
+  api:
+    build: ./api
+    container_name: go-api
+    depends_on:
+      - mysql
+      - opensearch
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_DSN: "root:root@tcp(mysql:3306)/testdb"
+      OPENSEARCH_ADDR: "http://opensearch:9200"
+
+  sync:
+    build:
+      context: ./
+      dockerfile: Dockerfile.sync
+    container_name: sync-es
+    depends_on:
+      - mysql
+      - opensearch
+    environment:
+      MYSQL_DSN: "root:root@tcp(mysql:3306)/testdb"
+      OPENSEARCH_ADDR: "http://opensearch:9200"
